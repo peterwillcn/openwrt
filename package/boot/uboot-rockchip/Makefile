@@ -24,13 +24,13 @@ define U-Boot/Default
   HIDDEN:=1
 endef
 
-# NanoPi R76S RK3576
 define U-Boot/nanopi-r76s-rk3576
   $(U-Boot/Default)
   BUILD_SUBTARGET:=armv8
-  NAME:=NanoPi R76S (RK3576)
+  NAME:=NanoPi R76S RK3576 using M5 config
   BUILD_DEVICES:= \
     friendlyarm_nanopi-r76s
+  UBOOT_CONFIG:=nanopi_m5
 endef
 
 UBOOT_TARGETS := \
@@ -40,61 +40,12 @@ UBOOT_CONFIGURE_VARS += USE_PRIVATE_LIBGCC=yes
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	# 拷贝增量文件到构建目录
-	$(if $(wildcard $(CURDIR)/src),$(CP) -a $(CURDIR)/src/* $(PKG_BUILD_DIR)/)
-endef
-
-# 基于nanopi-m5创建nanopi-r76s的defconfig
-define Build/Configure
-	# 复制nanopi-m5配置作为基础（如果存在）
-	if [ -f $(PKG_BUILD_DIR)/configs/nanopi_m5_defconfig ]; then \
-		$(CP) $(PKG_BUILD_DIR)/configs/nanopi_m5_defconfig $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) 's/nanopi-m5/nanopi-r76s/g' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) 's/TARGET_NANOPI_M5/TARGET_NANOPI_R76S/g' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) 's/rk3576-nanopi-m5/rk3576-nanopi-r76s/g' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) '/ANDROID/d' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) '/AVB/d' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_FASTBOOT is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_FUNCTION_FASTBOOT is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_CMD_FASTBOOT is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_CMD_ROCKUSB is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_CMD_USB_MASS_STORAGE is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_DWC3 is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_DWC3_GADGET is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_DWC3_GENERIC is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_STORAGE is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_GADGET is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_USB_XHCI_DWC3 is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) '/OPTEE/d' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_DM_VIDEO is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_DISPLAY is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "# CONFIG_DRM_ROCKCHIP is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_DM_ETH=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_DM_ETH_PHY=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_GMAC_ROCKCHIP=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) 's/CONFIG_DEBUG_UART_BASE=.*/CONFIG_DEBUG_UART_BASE=0x2ad40000/' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		$(SED) 's/CONFIG_BAUDRATE=.*/CONFIG_BAUDRATE=1500000/' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_DEBUG_UART_ANNOUNCE=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_DEBUG_UART_NS16550=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig; \
-	fi
-	$(call Build/Configure/U-Boot)
+	$(CP) $(PKG_BUILD_DIR)/configs/nanopi_m5_defconfig $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig
 endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
-	# 尝试复制不同可能的U-Boot输出文件
-	if [ -f $(PKG_BUILD_DIR)/u-boot-rockchip.bin ]; then \
-		$(CP) $(PKG_BUILD_DIR)/u-boot-rockchip.bin $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-u-boot-rockchip.bin; \
-	elif [ -f $(PKG_BUILD_DIR)/u-boot-dtb.img ]; then \
-		$(CP) $(PKG_BUILD_DIR)/u-boot-dtb.img $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-u-boot-rockchip.bin; \
-	elif [ -f $(PKG_BUILD_DIR)/u-boot.img ]; then \
-		$(CP) $(PKG_BUILD_DIR)/u-boot.img $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-u-boot-rockchip.bin; \
-	elif [ -f $(PKG_BUILD_DIR)/u-boot.bin ]; then \
-		$(CP) $(PKG_BUILD_DIR)/u-boot.bin $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-u-boot-rockchip.bin; \
-	else \
-		echo "Error: No U-Boot binary found"; \
-		exit 1; \
-	fi
+	$(CP) $(PKG_BUILD_DIR)/u-boot-dtb.bin $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-u-boot-rockchip.bin
 endef
 
 define Package/u-boot/install/default
