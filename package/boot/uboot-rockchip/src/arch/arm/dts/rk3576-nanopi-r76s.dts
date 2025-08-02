@@ -14,7 +14,7 @@
 		     "rockchip,rk3576";
 
 	chosen {
-		u-boot,spl-boot-order = &sdmmc, &sdhci;
+		u-boot,spl-boot-order = &sdmmc, "same-as-spl", &sdhci;
 	};
 
 	aliases {
@@ -55,10 +55,7 @@
 	};
 };
 
-/* UART for console output */
-&uart0 {
-	status = "okay";
-};
+/* UART for console output - disable for now to match M5 */
 
 /* SD card support for booting */
 &sdmmc {
