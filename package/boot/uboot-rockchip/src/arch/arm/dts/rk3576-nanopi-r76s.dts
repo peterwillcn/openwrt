@@ -56,7 +56,7 @@
 };
 
 /* UART for console output */
-&uart2 {
+&uart0 {
 	status = "okay";
 };
 

@@ -71,7 +71,8 @@ define Build/Configure
 		echo "# CONFIG_DRM_ROCKCHIP is not set" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
 		echo "CONFIG_DM_ETH=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
 		echo "CONFIG_DM_ETH_PHY=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
-		echo "CONFIG_GMAC_ROCKCHIP=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig; \
+		echo "CONFIG_GMAC_ROCKCHIP=y" >> $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig && \
+		$(SED) 's/CONFIG_DEBUG_UART_BASE=.*/CONFIG_DEBUG_UART_BASE=0x2ad40000/' $(PKG_BUILD_DIR)/configs/nanopi-r76s-rk3576_defconfig; \
 	fi
 	$(call Build/Configure/U-Boot)
 endef
