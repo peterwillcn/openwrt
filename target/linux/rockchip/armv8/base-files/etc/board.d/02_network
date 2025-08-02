@@ -19,6 +19,7 @@ rockchip_setup_interfaces()
 	friendlyarm,nanopi-r4se|\
 	friendlyarm,nanopi-r4s-enterprise|\
 	friendlyarm,nanopi-r6c|\
+	friendlyarm,nanopi-r76s|\
 	radxa,rockpi-e|\
 	xunlong,orangepi-r1-plus|\
 	xunlong,orangepi-r1-plus-lts)
@@ -73,6 +74,7 @@ rockchip_setup_macs()
 	cyber,cyber3588-aib|\
 	ezpro,mrkaio-m68s|\
 	friendlyarm,nanopc-t6|\
+	friendlyarm,nanopi-r76s|\
 	friendlyarm,nanopi-r2c|\
 	friendlyarm,nanopi-r2s|\
 	lunzn,fastrhino-r66s|\
