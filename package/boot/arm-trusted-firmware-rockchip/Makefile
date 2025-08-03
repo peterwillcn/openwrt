@@ -8,10 +8,10 @@ PKG_NAME:=rkbin
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/rockchip-linux/rkbin.git
-PKG_SOURCE_DATE:=2025-01-24
-PKG_SOURCE_VERSION:=f43a462e7a1429a9d407ae52b4745033034a6cf9
-PKG_MIRROR_HASH:=97f899f37f7996e62e8f9dd72e732ea74dd1d553796a863b1533a0d3d6f0c62b
+PKG_SOURCE_URL:=https://github.com/friendlyarm/rkbin.git
+PKG_SOURCE_DATE:=2025-04-02
+PKG_SOURCE_VERSION:=c6fe398a302bbd83dd3bc04a79f932d8d5611c51
+PKG_MIRROR_HASH:=skip
 
 PKG_MAINTAINER:=Tianling Shen <cnsztl@immortalwrt.org>
 
@@ -70,6 +70,13 @@ define Trusted-Firmware-A/rk3568-e25
   TPL:=rk35/$(RK3568_TPL_E25)
 endef
 
+define Trusted-Firmware-A/rk3576
+  BUILD_SUBTARGET:=armv8
+  ATF:=rk35/$(RK3576_ATF)
+  TPL:=rk35/$(RK3576_TPL)
+  LOADER:=rk35/$(RK3576_LOADER)
+endef
+
 define Trusted-Firmware-A/rk3588
   BUILD_SUBTARGET:=armv8
   ATF:=rk35/$(RK3588_ATF)
@@ -84,6 +91,7 @@ TFA_TARGETS:= \
 	rk3566 \
 	rk3568 \
 	rk3568-e25 \
+	rk3576 \
 	rk3588
 
 ifeq ($(BUILD_VARIANT),rk3308-rock-pi-s)
