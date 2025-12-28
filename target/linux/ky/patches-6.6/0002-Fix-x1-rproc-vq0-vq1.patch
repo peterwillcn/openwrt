@@ -1,0 +1,11 @@
+--- a/drivers/remoteproc/x1-rproc.c
++++ b/drivers/remoteproc/x1-rproc.c
+@@ -319,7 +319,7 @@ static int __process_theread(void *arg)
+ 
+ 	do {
+ 		try_to_freeze();
+-		wait_for_completion_timeout(&mb->mb_comp, 10);
++		wait_for_completion_interruptible_timeout(&mb->mb_comp, 10);
+ 		if (rproc_vq_interrupt(rproc, mb->vq_id) == IRQ_NONE)
+ 			dev_dbg(&rproc->dev, "no message found in vq%d\n", mb->vq_id);
+ 	} while (!kthread_should_stop());
