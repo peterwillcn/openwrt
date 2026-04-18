@@ -1,0 +1,35 @@
+From 4026ef52aefd711594b49d254f57c41a378562b5 Mon Sep 17 00:00:00 2001
+From: Andre Heider <a.heider@gmail.com>
+Date: Mon, 11 May 2026 13:37:22 +0200
+Subject: [PATCH] riscv: dts: spacemit: k1-*: fix sdhci cd
+
+Fixes it on musepi-pro, the rv2 needs confirmation.
+---
+ arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts   | 3 +--
+ arch/riscv/boot/dts/spacemit/k1-orangepi-rv2.dts | 3 +--
+ 2 files changed, 2 insertions(+), 4 deletions(-)
+
+--- a/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
+@@ -396,8 +396,7 @@
+ 	pinctrl-0 = <&mmc1_cfg>;
+ 	pinctrl-1 = <&mmc1_uhs_cfg>;
+ 	bus-width = <4>;
+-	cd-gpios = <&gpio K1_GPIO(80) GPIO_ACTIVE_HIGH>;
+-	cd-inverted;
++	cd-gpios = <&gpio K1_GPIO(80) (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+ 	no-mmc;
+ 	no-sdio;
+ 	disable-wp;
+--- a/arch/riscv/boot/dts/spacemit/k1-orangepi-rv2.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-orangepi-rv2.dts
+@@ -325,8 +325,7 @@
+ 	pinctrl-0 = <&mmc1_cfg>;
+ 	pinctrl-1 = <&mmc1_uhs_cfg>;
+ 	bus-width = <4>;
+-	cd-gpios = <&gpio K1_GPIO(80) GPIO_ACTIVE_HIGH>;
+-	cd-inverted;
++	cd-gpios = <&gpio K1_GPIO(80) (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+ 	no-mmc;
+ 	no-sdio;
+ 	disable-wp;

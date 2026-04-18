@@ -1,0 +1,40 @@
+From 6e2e467772c178bc997f3aa127f778dd6df1461f Mon Sep 17 00:00:00 2001
+From: Chukun Pan <amadeus@jmu.edu.cn>
+Date: Fri, 10 Apr 2026 18:00:09 +0800
+Subject: [PATCH] riscv: dts: spacemit: add fixed regulators for OrangePi R2S
+
+Define the power input and the 4V power as fixed regulator supplies.
+
+Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+---
+ .../boot/dts/spacemit/k1-orangepi-r2s.dts     | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+--- a/arch/riscv/boot/dts/spacemit/k1-orangepi-r2s.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-orangepi-r2s.dts
+@@ -21,6 +21,25 @@
+ 	chosen {
+ 		stdout-path = "serial0";
+ 	};
++
++	vcc_5v0: regulator-vcc-5v0 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_5v0";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++	};
++
++	vcc4v0: regulator-vcc4v0 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc4v0";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <4000000>;
++		regulator-max-microvolt = <4000000>;
++		vin-supply = <&vcc_5v0>;
++	};
+ };
+ 
+ &emmc {
