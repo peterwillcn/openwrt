@@ -1,0 +1,25 @@
+From b03aa3eab61dffbd8487d38216a89324cd9b3c64 Mon Sep 17 00:00:00 2001
+From: Andre Heider <a.heider@gmail.com>
+Date: Tue, 5 May 2026 13:51:21 +0200
+Subject: [PATCH] riscv: dts: spacemit: k1-musepi-pro: set default console baud
+ rate
+
+Allow serial output with the same uboot/opensbi settings so the
+console works without providing a cmdline.
+
+Signed-off-by: Andre Heider <a.heider@gmail.com>
+---
+ arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
+@@ -22,7 +22,7 @@
+ 	};
+ 
+ 	chosen {
+-		stdout-path = "serial0";
++		stdout-path = "serial0:115200n8";
+ 	};
+ 
+ 	leds {

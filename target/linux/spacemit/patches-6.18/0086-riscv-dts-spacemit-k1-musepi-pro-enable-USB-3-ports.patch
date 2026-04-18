@@ -1,0 +1,89 @@
+From a84f0aa4bf441615bb1a1895de9be1804957cf42 Mon Sep 17 00:00:00 2001
+From: Andre Heider <a.heider@gmail.com>
+Date: Mon, 20 Apr 2026 10:42:52 +0200
+Subject: [PATCH] riscv: dts: spacemit: k1-musepi-pro: enable USB 3 ports
+
+Enable the DWC3 USB 3.0 controller, its associated combo_phy (USB 3 PHY)
+and usbphy2 (USB 2 PHY) on the MusePi Pro board.
+
+The board uses a VLI VL817 hub, providing four ports.
+
+Signed-off-by: Andre Heider <a.heider@gmail.com>
+---
+ .../riscv/boot/dts/spacemit/k1-musepi-pro.dts | 54 +++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+
+--- a/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
+@@ -54,6 +54,28 @@
+ 		regulator-always-on;
+ 		vin-supply = <&reg_usb_vbus>;
+ 	};
++
++	reg_5v_vbus: regulator-5v-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "5V_VBUS";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++		vin-supply = <&reg_vcc_5v0_sys>;
++		gpio = <&gpio K1_GPIO(79) GPIO_ACTIVE_HIGH>; /* USB3_PWREN */
++		enable-active-high;
++	};
++
++	reg_vcc5v_hub: regulator-vcc5v-hub {
++		compatible = "regulator-fixed";
++		regulator-name = "VCC5V0_HUB";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++		vin-supply = <&reg_vcc_5v0_sys>;
++		gpio = <&gpio K1_GPIO(127) GPIO_ACTIVE_HIGH>; /* HUB_PWREN */
++		enable-active-high;
++	};
+ };
+ 
+ &emmc {
+@@ -66,6 +88,10 @@
+ 	status = "okay";
+ };
+ 
++&combo_phy {
++	status = "okay";
++};
++
+ &eth0 {
+ 	phy-handle = <&rgmii0>;
+ 	phy-mode = "rgmii-id";
+@@ -295,3 +321,31 @@
+ 	pinctrl-names = "default";
+ 	status = "okay";
+ };
++
++&usbphy2 {
++	status = "okay";
++};
++
++&usb_dwc3 {
++	dr_mode = "host";
++	#address-cells = <1>;
++	#size-cells = <0>;
++	vbus-supply = <&reg_5v_vbus>;
++	status = "okay";
++
++	hub_2_0: hub@1 {
++		compatible = "usb2109,2817";
++		reg = <0x1>;
++		vdd-supply = <&reg_vcc5v_hub>;
++		peer-hub = <&hub_3_0>;
++		reset-gpios = <&gpio K1_GPIO(123) GPIO_ACTIVE_LOW>; /* HUB_RST */
++	};
++
++	hub_3_0: hub@2 {
++		compatible = "usb2109,817";
++		reg = <0x2>;
++		vdd-supply = <&reg_vcc5v_hub>;
++		peer-hub = <&hub_2_0>;
++		reset-gpios = <&gpio K1_GPIO(123) GPIO_ACTIVE_LOW>; /* HUB_RST */
++	};
++};

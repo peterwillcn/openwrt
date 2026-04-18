@@ -1,0 +1,79 @@
+From 4f28cade36e8c39e81f42844f437eda1fadfbd58 Mon Sep 17 00:00:00 2001
+From: Andre Heider <a.heider@gmail.com>
+Date: Mon, 20 Apr 2026 10:17:25 +0200
+Subject: [PATCH] riscv: dts: spacemit: k1-musepi-pro: enable PCIe ports
+
+Enable the two PCIe controller along with and their associated PHYs. They
+are routed to the M.2 M-key connector and to the PCIe slot.
+
+Signed-off-by: Andre Heider <a.heider@gmail.com>
+---
+ .../riscv/boot/dts/spacemit/k1-musepi-pro.dts | 50 +++++++++++++++++++
+ 1 file changed, 50 insertions(+)
+
+--- a/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
++++ b/arch/riscv/boot/dts/spacemit/k1-musepi-pro.dts
+@@ -36,6 +36,24 @@
+ 		};
+ 	};
+ 
++	pcie_vcc_3v3: regulator-pcie-vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "PCIE_VCC3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		vin-supply = <&reg_usb_vbus>;
++	};
++
++	mpcie_vcc_3v3: regulator-mpcie-vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "MPCIE_VCC3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		vin-supply = <&reg_usb_vbus>;
++	};
++
+ 	reg_usb_vbus: regulator-usb-vbus {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "USBVBUS";
+@@ -275,6 +293,38 @@
+ 	};
+ };
+ 
++&pcie1_phy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie1_3_cfg>;
++	status = "okay";
++};
++
++&pcie1_port {
++	phys = <&pcie1_phy>;
++	vpcie3v3-supply = <&pcie_vcc_3v3>;
++};
++
++&pcie1 {
++	vpcie3v3-supply = <&pcie_vcc_3v3>;
++	status = "okay";
++};
++
++&pcie2_phy {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie2_4_cfg>;
++	status = "okay";
++};
++
++&pcie2_port {
++	phys = <&pcie2_phy>;
++	vpcie3v3-supply = <&mpcie_vcc_3v3>;
++};
++
++&pcie2 {
++	vpcie3v3-supply = <&mpcie_vcc_3v3>;
++	status = "okay";
++};
++
+ &qspi {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&qspi_cfg>;
