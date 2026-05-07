@@ -112,20 +112,22 @@ define Build/U-Boot/Target
   endef
 endef
 
+ifndef UBOOT_USE_INTREE_DTC
+  DTC=$(wildcard $(LINUX_DIR)/scripts/dtc/dtc)
+endif
+
 define Build/Configure/U-Boot
 	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
 		CROSS_COMPILE=$(TARGET_CROSS) \
 		$(UBOOT_CONFIGURE_VARS) \
 		$(firstword $(UBOOT_CONFIG))_config \
 		$(wordlist 2,$(words $(UBOOT_CONFIG)),$(UBOOT_CONFIG:%=%.config))
+	$(if $(DTC),
+		$(PKG_BUILD_DIR)/scripts/config --file $(PKG_BUILD_DIR)/.config --set-str MKIMAGE_DTC_PATH "$(DTC)")
 	$(if $(strip $(UBOOT_CUSTOMIZE_CONFIG)),
 		$(PKG_BUILD_DIR)/scripts/config --file $(PKG_BUILD_DIR)/.config $(UBOOT_CUSTOMIZE_CONFIG)
 		+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) CROSS_COMPILE=$(TARGET_CROSS) $(UBOOT_CONFIGURE_VARS) oldconfig)
 endef
-
-ifndef UBOOT_USE_INTREE_DTC
-  DTC=$(wildcard $(LINUX_DIR)/scripts/dtc/dtc)
-endif
 
 define Build/Compile/U-Boot
 	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
