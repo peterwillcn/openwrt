@@ -153,7 +153,7 @@ CONFIG_CIFS=m
 # CONFIG_CIFS_UPCALL is not set
 CONFIG_CLONE_BACKWARDS=y
 CONFIG_CLZ_TAB=y
-CONFIG_CMDLINE="earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=3 log_buf_len=4M softlockup_panic=1 nmi_watchdog=panic oops=panic printk.devkmsg=on rdinit=/init panic=5 clk_ignore_unused pd_ignore_unused regulator_ignore_unused fw_devlink=permissive"
+CONFIG_CMDLINE="earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=3 log_buf_len=4M softlockup_panic=1 nmi_watchdog=panic oops=panic printk.devkmsg=on root=LABEL=mu300sd rootwait rootfstype=ext4 rw panic=5 clk_ignore_unused pd_ignore_unused regulator_ignore_unused fw_devlink=permissive"
 CONFIG_CMDLINE_FORCE=y
 CONFIG_COMMON_CLK=y
 CONFIG_COMPACT_UNEVICTABLE_DEFAULT=1
