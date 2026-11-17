@@ -1,0 +1,179 @@
+ZTE F50 / MU300 on OpenWrt
+==========================
+
+Device: ZTE F50 (also sold as MU300), a 5G pocket router. SoC Unisoc UMS9620
+("qogirn6pro", Cortex-A76 x4 + A55 x4, arm64), board ums9620_2h10_feimao, eMMC,
+USB-C for power and USB networking, a Marlin3 (SC2355) Wi-Fi/BT chip on PCIe, no
+Ethernet, no battery (the U30 Air is the same board with a battery).
+
+Everything below is measured on hardware by the mu300-linux project
+(https://github.com/dikeckaan/mu300-linux, MIT / GPL-2.0). This target exists
+because OpenWrt's own kernel cannot boot the board: mainline Linux has no
+UMS9620 platform support, and the drivers that make the board work live in that
+project as a port of Unisoc's 5.4 vendor kernel.
+
+
+1. How the device boots, and why this target looks unusual
+----------------------------------------------------------
+
+There is no U-Boot, no partition table to write and no OpenWrt sysupgrade path:
+
+    LK (ZTE's bootloader, slot b, tries=2)
+      -> Android boot image from boot_b: wrapped Image + initramfs
+           -> /init (the initramfs of mu300-linux, boot/init)
+                -> loads the rest, finds the root filesystem,
+                   restores Android's slot in misc, switch_root
+
+* The kernel and the initramfs are packed the way Android packs them, into an
+  Android boot image (header v4, LZ4-legacy ramdisk), and written to a boot
+  slot. This target therefore produces a wrapped `Image`, not a flashable
+  firmware image.
+* The device tree is NOT part of the kernel. LK merges the vendor dtbo and
+  passes the result to the kernel from the stock `vendor_boot` partition. A
+  minimal device tree of our own was tried and hung in setup_machine_fdt, so
+  this target has no DTS and must not grow one.
+* LK ignores the kernel command line a Linux kernel would normally read, so the
+  kernel is built with CONFIG_CMDLINE_FORCE and its own command line in the
+  config (see config-6.18): earlycon on 0x20210000, console=ttyS1,
+  rdinit=/init, panic=5.
+* LK always copies the kernel to 0x80080000, which is not 2 MiB aligned. A
+  kernel since 5.8 cannot start there, so image/wrap-image.py prepends a stub
+  that branches to 0x80200000. The kernel artifact of this target is that
+  wrapped image (`*-Image.lk`).
+* The root filesystem is not a partition either: it lives in the free area of
+  the eMMC after `userdata` (on the tested 64 GB device: offset 27762098176,
+  ext4, label `mu300root`; an SD card labelled `mu300sd` is used instead when
+  one is present). boot/init finds it with a loop device and switch_roots into
+  it. Because of this, `sysupgrade` cannot work and the image is installed onto
+  that filesystem, not flashed.
+
+
+2. What this target builds
+--------------------------
+
+  * `openwrt-ums9620-generic-zte_f50-ext4-Image.lk`
+      the 6.18 kernel, wrapped for LK (see above). The `ext4` in the name is
+      OpenWrt tagging the device image with the root filesystem type of the
+      image set; it says nothing about the kernel.
+  * `openwrt-ums9620-generic-zte_f50-targz-rootfs.tar.gz`
+      the OpenWrt userland, with the kernel modules its kmod-* packages
+      install in /lib/modules/6.18.60/ (flat, as procd's kmodloader and the
+      MU300 initramfs both expect them).
+  * `openwrt-ums9620-generic-rootfs.tar.gz`
+      the same root filesystem without the device tag.
+
+CONFIG_TARGET_ROOTFS_EXT4FS has to stay on in the build configuration: the
+device image rule needs the ext4 root filesystem to exist, and with it a
+`rootfs.ext4` can also be written straight to the eMMC area.
+
+The Android boot image is assembled outside this tree, by the tool that has
+been tested on the device, from these artifacts plus the files that only exist
+on your own unit:
+
+    MU300_LINUX=/path/to/mu300-linux
+    python3 $MU300_LINUX/boot/build-boot-image.py \
+        --stock-boot dumps/boot_a.img --misc-head dumps/misc-head.bin \
+        --kernel  bin/targets/ums9620/generic/openwrt-ums9620-generic-zte_f50-ext4-Image.lk \
+        --modules <dir with the .ko built for this kernel> \
+        --busybox busybox --logdw logdw \
+        --ueventd-perms android-vendor/ueventd-perms.sh \
+        --android-subset android-subset \
+        --out boot-linux-slotb.img
+
+(`dumps/`, `android-subset/` and `busybox` are made by that project's
+tools/backup-device.sh and android-vendor/extract-subset.sh; the rootfs goes
+onto the eMMC area with its installer or with `mu300-update`.) Nothing here is
+written to boot_a, and LK falls back to Android if Linux does not come up.
+
+
+3. Kernel
+---------
+
+Version 6.18.60 — the same release mu300-linux's mainline port is built and
+tested against, which is why the port applies here unchanged.
+
+patches-6.18/
+  0000-sprd-ums9620-port.patch
+      The port itself, generated from mu300-linux upstream/port/: the drivers
+      of Unisoc's 5.4 vendor kernel adapted to the 6.18 APIs and hooked into
+      the tree — UMS9620 clock controller, cpufreq, devfreq/top DVFS, thermal
+      (tsensor, CPU hotplug cooling), UMP9620/UMP9621 regulators and MFD,
+      PMIC syscon/7sreset/soc_id, pcie-sprd (Marlin3 Wi-Fi/BT on PCIe),
+      sdhci-sprd (ordering of the MMIO accessors, the eMMC as mmc0, the SD
+      slot), USB PHY/BC1.2/Type-C, LEDs, the PMIC watchdog, the SoC TRNG, and
+      the device-tree compatibles of the vendor tree.
+  0001..0032
+      mu300-linux's own kernel patches, unchanged and in its order: PMIC reset
+      through spi-sprd-adi (PSCI SYSTEM_RESET never returns on this firmware),
+      eMMC/SD ordering and HS400ES fallback, USB gadget NCM fixes, the battery
+      and charger drivers of the U30 Air, and so on. They apply on top of the
+      port, exactly as they do there.
+
+      The numbers are theirs, which is why there is no 0022: that one was
+      the reserved-memory patch of the call-audio work, removed with it
+      (mu300-linux 238a4157). Two of the 32 come from their 6.18-only
+      directory (0007, 0028); the rest apply to every kernel they build.
+
+config-6.18 is that project's tested configuration (upstream/mu300-mainline.config)
+with a note of what must not change. Its symbols that the generic config also
+names win over the generic config, as usual for a target config.
+
+
+4. What is NOT here, and why
+----------------------------
+
+The board has no in-tree drivers for three things that matter, and they are
+out-of-tree modules of mu300-linux rather than something this target can build:
+
+  * Wi-Fi and Bluetooth (sprd_wlan_combo, sprdbt_tty, wcn_bsp): Unisoc/realme
+    vendor sources, built there with their patches. Without them the hotspot
+    cannot come up, and wlan0 in /etc/config/network stays absent.
+  * the modem stack (sipa, SIPC, the AT channel) and the Android vendor chroot
+    that boots the modem, plus the MU300 toolkit in /opt/mu300 that drives it
+    (mobile-data, mu300-sim, ...). Without them there is no wan and no mobile
+    data, which is why /etc/config/network has no wan interface.
+  * the Mali GPU (kbase) and its userspace.
+
+A working OpenWrt image for this device therefore is a combination of what this
+target builds (kernel + userland) with those modules and files, as mu300-linux
+assembles it. Two ways to combine them, both tested there:
+
+  * install this target's rootfs.tar.gz as the system and copy the modules into
+    /lib/modules/<release>/, or
+  * keep building the image with that project's openwrt/build-rootfs.sh and
+    only take this target's kernel (that is where the kernel work happens).
+
+
+5. Building
+-----------
+
+    make menuconfig     # Target: Unisoc UMS9620 (T760) / Generic / ZTE F50
+    make -j$(nproc)
+
+The kernel is large but unremarkable to build; nothing in this target needs a
+vendor toolchain (LLVM's ThinLTO, which mu300-linux uses for the 5.4 kernel, is
+not needed for 6.18).
+
+Two things about the kernel configuration are worth knowing before touching it:
+
+  * It is written out in full (see the top of config-6.18). A fragment would
+    make kbuild's syncconfig ask questions, and a build has no terminal.
+  * CONFIG_KERNEL_WERROR has to be off (generic's default). The ported drivers
+    carry warnings the vendor kernel tolerated, a non-static function without a
+    prototype in pcie-sprd-misc.c being the first one gcc reports, and
+    mu300-linux builds this kernel with clang.
+
+Not verified from this tree: no one has booted an image built here on hardware
+yet. The artifacts are byte-compatible with what the tested build produces (same
+kernel version, same port, same wrap, same rootfs layout) but a first boot must
+be done as a trial boot (mu300-linux boot/flash-trial.sh) with Android's slot
+untouched.
+
+
+6. Provenance
+-------------
+
+The ported drivers and the patches carry their origin in their headers; the
+port, the patches and the boot format come from mu300-linux, which is MIT and
+GPL-2.0 licensed. Do not add a device tree, a sysupgrade recipe or a whole-disk
+image for this board: all three have been tried on the device and fail.

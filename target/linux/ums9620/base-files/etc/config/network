@@ -1,0 +1,28 @@
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config globals 'globals'
+	option ula_prefix 'fd8e:2a41:77c3::/48'
+
+# The F50's LAN is the USB gadget link (usb0, bound by the initramfs before
+# switch_root) bridged with the 5 GHz hotspot (wlan0, once the Wi-Fi modules are
+# loaded). 192.168.77.1 is the address ZTE's firmware uses for the same port.
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'usb0'
+	list ports 'wlan0'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.77.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+
+# No wan here: mobile data needs the MU300 toolkit (modem bring-up through the
+# Android vendor chroot) and its netifd protocol, mu300cell, which are not part
+# of this tree. see README in target/linux/ums9620.
