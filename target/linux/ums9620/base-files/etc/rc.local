@@ -1,0 +1,74 @@
+# Put your custom commands here that should be executed once
+# the system init finished. By default this file does nothing.
+
+# ---------------------------------------------------------------------------
+# ZTE F50 / MU300: USB network gadget
+#
+# The kernel builds the gadget stack in (CONFIG_USB_CONFIGFS=y, the ECM/NCM/RNDIS
+# functions and dwc3), but nothing configures it: the device tree comes from the
+# stock vendor_boot and the board has no initramfs to do it. Without this the
+# board boots with a serial console only - br-lan has no member and there is no
+# way to log in over the USB-C port.
+#
+# The ECM function shows up on the host as a new ethernet interface and inside
+# Linux as usb0, which /etc/config/network already lists as a br-lan port.
+# ---------------------------------------------------------------------------
+f50_usb_gadget() {
+	[ -d /sys/class/udc ] || return 0
+	[ -n "$(ls /sys/class/udc 2>/dev/null)" ] || return 0   # no UDC, not a gadget boot
+
+	mount -t configfs none /sys/kernel/config 2>/dev/null
+	[ -d /sys/kernel/config/usb_gadget ] || return 0
+
+	G=/sys/kernel/config/usb_gadget/f50
+	if [ ! -d "$G" ]; then
+		mkdir -p "$G" || return 0
+		echo 0x0525 > "$G/idVendor"		# NetChip: same VID:PID as the MU300 Linux port
+		echo 0xa4a1 > "$G/idProduct"
+		echo 0x0100 > "$G/bcdDevice"
+		echo 0x0200 > "$G/bcdUSB"
+
+		mkdir -p "$G/strings/0x409"
+		echo "OpenWrt" > "$G/strings/0x409/manufacturer"
+		echo "ZTE F50" > "$G/strings/0x409/product"
+		echo "F50LINUX-$(cat /sys/class/net/eth0/address 2>/dev/null | tr -d ':')" \
+			> "$G/strings/0x409/serialnumber"
+
+		mkdir -p "$G/configs/c.1"
+		echo 250 > "$G/configs/c.1/MaxPower"
+		mkdir -p "$G/configs/c.1/strings/0x409"
+		echo "ECM" > "$G/configs/c.1/strings/0x409/configuration"
+
+		mkdir -p "$G/functions/ecm.usb0"
+		# host side (the PC) / device side MACs, fixed so the address is stable
+		echo "02:1d:6b:00:00:01" > "$G/functions/ecm.usb0/dev_addr"
+		echo "02:1d:6b:00:00:02" > "$G/functions/ecm.usb0/host_addr"
+		ln -sf "$G/functions/ecm.usb0" "$G/configs/c.1/ecm.usb0"
+	fi
+
+	# bind to the first (only) UDC
+	if [ -z "$(cat "$G/UDC" 2>/dev/null)" ]; then
+		udc="$(ls /sys/class/udc | head -n 1)"
+		echo "$udc" > "$G/UDC" 2>/dev/null
+	fi
+
+	# usb0 may not have existed when netifd set up br-lan, so attach it now and
+	# re-run netifd on the lan interface.
+	i=0
+	while [ ! -e /sys/class/net/usb0 ] && [ $i -lt 30 ]; do
+		sleep 1
+		i=$((i + 1))
+	done
+	if [ -e /sys/class/net/usb0 ]; then
+		ip link set usb0 up 2>/dev/null
+		if [ -d /sys/class/net/br-lan ]; then
+			ip link set usb0 master br-lan 2>/dev/null
+			ip link set br-lan up 2>/dev/null
+		fi
+		ifup lan 2>/dev/null || true
+	fi
+}
+
+f50_usb_gadget &
+
+exit 0
